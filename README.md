@@ -75,13 +75,13 @@ hosts:
 
 ```bash
 scatter run "uname -a" --inventory inventory.yaml --limit 50
+```
 
 Or read the command from a file:
 
 ```bash
 echo 'uname -a; date -u' > cmd.sh
 scatter run --command-file ./cmd.sh --inventory inventory.yaml --limit 50
-```
 ```
 
 - `--limit` controls max concurrency
