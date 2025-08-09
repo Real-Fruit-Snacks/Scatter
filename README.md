@@ -31,10 +31,10 @@ Once installed, a top-level console command `scatter` is available.
 
 ### Offline/air-gapped installation
 
-We publish prebuilt wheel bundles per OS and Python version in GitHub Releases.
+We publish prebuilt wheel bundles per OS runner and Python version in GitHub Releases.
 
-- Asset naming: `wheels-<OS>-py<MAJOR.MINOR>.zip`
-  - Examples: `wheels-Linux-py3.10.zip`, `wheels-macOS-py3.12.zip`, `wheels-Windows-py3.11.zip`
+- Asset naming: `wheels-<os>-latest-py<MAJOR.MINOR>.zip`
+  - Examples: `wheels-ubuntu-latest-py3.10.zip`, `wheels-macos-latest-py3.12.zip`, `wheels-windows-latest-py3.11.zip`
 
 1) Download the zip matching your platform and Python (e.g., `wheels-Linux-py3.11.zip`).
 2) Extract to a folder, e.g., `./wheelhouse`.
@@ -90,6 +90,37 @@ scatter run --command-file ./cmd.sh --inventory inventory.yaml --limit 50
 - `--limit` controls max concurrency
 - `--identity` sets the private key file to use
 - Use `--known-hosts off` to skip verification (not recommended for production)
+
+### Trying multiple usernames or passwords (optional)
+
+You can provide lists for credential attempts:
+
+```
+# users.txt
+admin
+ubuntu
+ec2-user
+
+# passwords.txt
+hunter2
+changeme123
+```
+
+Examples:
+
+```bash
+# Try key-based auth with each username (if --identity or agent is available)
+scatter run "id" --inventory inventory.yaml --identity ~/.ssh/id_ed25519 --username-list users.txt
+
+# Try each (username, password) pair
+scatter run "hostname" --inventory inventory.yaml --username-list users.txt --password-list passwords.txt
+
+# Try password list for a single username
+scatter run "uptime" --inventory inventory.yaml --username admin --password-list passwords.txt
+```
+
+When lists are provided, the tool first attempts key-based auth per username (if a key or agent is available),
+then falls back to password attempts over the Cartesian product of usernames and passwords. Respect local laws and only use on systems you are authorized to access.
 
 4) CLI help:
 
@@ -190,4 +221,4 @@ Tips:
 ## Compatibility
 - Supported Python: 3.10+
 - Platforms: Linux, macOS, Windows
-- On Linux, `uvloop` is used automatically if available.
+- On non-Windows platforms, `uvloop` is used automatically if available.

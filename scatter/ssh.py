@@ -68,6 +68,9 @@ class ExecOptions:
     limit: int
     command_timeout: Optional[float] = None
     retry_attempts: int = 1
+    # Optional candidate lists when performing credential spray attempts
+    username_candidates: Optional[List[str]] = None
+    password_candidates: Optional[List[str]] = None
 
 
 async def _connect(host: str, options: ExecOptions) -> asyncssh.SSHClientConnection:
@@ -120,24 +123,130 @@ async def run_on_host(host: str, command: str, options: ExecOptions, semaphore: 
                 reraise=True,
             ):
                 with attempt:
-                    conn = await _connect(host, options)
-                    try:
-                        completed = await _run_command(conn, command, options)
-                        return ExecResult(
-                            host=host,
-                            exit_status=completed.exit_status,
-                            stdout=completed.stdout or "",
-                            stderr=completed.stderr or "",
-                            ok=(completed.exit_status == 0),
-                            started_at=started,
-                            ended_at=time.perf_counter(),
-                        )
-                    finally:
+                    use_spray = bool(options.username_candidates or options.password_candidates)
+                    if not use_spray:
+                        # Original behavior: single connect using provided options
+                        conn = await _connect(host, options)
                         try:
-                            conn.close()
-                            await conn.wait_closed()
-                        except Exception:
-                            pass
+                            completed = await _run_command(conn, command, options)
+                            return ExecResult(
+                                host=host,
+                                exit_status=completed.exit_status,
+                                stdout=completed.stdout or "",
+                                stderr=completed.stderr or "",
+                                ok=(completed.exit_status == 0),
+                                started_at=started,
+                                ended_at=time.perf_counter(),
+                            )
+                        finally:
+                            try:
+                                conn.close()
+                                await conn.wait_closed()
+                            except Exception:
+                                pass
+
+                    # Credential spray mode
+                    # Build candidate username/password lists
+                    # If a username list is provided, use it exclusively.
+                    usernames: List[Optional[str]]
+                    if options.username_candidates:
+                        usernames = list(options.username_candidates)
+                    elif options.username is not None:
+                        usernames = [options.username]
+                    else:
+                        usernames = [None]
+
+                    passwords: List[Optional[str]] = []
+                    if options.password is not None:
+                        passwords.append(options.password)
+                    if options.password_candidates:
+                        for p in options.password_candidates:
+                            if p not in passwords:
+                                passwords.append(p)
+                    # Include None for key-only attempt when identity is set
+                    if options.identity and None not in passwords:
+                        passwords = [None] + passwords
+
+                    # Try key-only first if applicable
+                    if options.identity and None in passwords:
+                        for u in usernames:
+                            try:
+                                conn = await _connect(
+                                    host,
+                                    ExecOptions(
+                                        username=u,
+                                        port=options.port,
+                                        identity=options.identity,
+                                        password=None,
+                                        known_hosts=options.known_hosts,
+                                        connect_timeout=options.connect_timeout,
+                                        pty=options.pty,
+                                        limit=options.limit,
+                                        command_timeout=options.command_timeout,
+                                        retry_attempts=options.retry_attempts,
+                                    ),
+                                )
+                                try:
+                                    completed = await _run_command(conn, command, options)
+                                    return ExecResult(
+                                        host=host,
+                                        exit_status=completed.exit_status,
+                                        stdout=completed.stdout or "",
+                                        stderr=completed.stderr or "",
+                                        ok=(completed.exit_status == 0),
+                                        started_at=started,
+                                        ended_at=time.perf_counter(),
+                                    )
+                                finally:
+                                    try:
+                                        conn.close()
+                                        await conn.wait_closed()
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+
+                    # Password attempts
+                    for u in usernames:
+                        for p in [pw for pw in passwords if pw is not None]:
+                            try:
+                                conn = await _connect(
+                                    host,
+                                    ExecOptions(
+                                        username=u,
+                                        port=options.port,
+                                        identity=options.identity,
+                                        password=p,
+                                        known_hosts=options.known_hosts,
+                                        connect_timeout=options.connect_timeout,
+                                        pty=options.pty,
+                                        limit=options.limit,
+                                        command_timeout=options.command_timeout,
+                                        retry_attempts=options.retry_attempts,
+                                    ),
+                                )
+                                try:
+                                    completed = await _run_command(conn, command, options)
+                                    return ExecResult(
+                                        host=host,
+                                        exit_status=completed.exit_status,
+                                        stdout=completed.stdout or "",
+                                        stderr=completed.stderr or "",
+                                        ok=(completed.exit_status == 0),
+                                        started_at=started,
+                                        ended_at=time.perf_counter(),
+                                    )
+                                finally:
+                                    try:
+                                        conn.close()
+                                        await conn.wait_closed()
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+
+                    # None succeeded within this attempt
+                    raise OSError("credential candidates failed")
         except Exception as exc:  # noqa: BLE001
             return ExecResult(
                 host=host,

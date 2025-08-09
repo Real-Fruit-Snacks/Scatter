@@ -71,6 +71,7 @@ def run(
     limit: int = typer.Option(50, min=1, help="Max concurrent SSH sessions"),
     identity: Optional[Path] = typer.Option(None, help="Path to private key file to use"),
     username: Optional[str] = typer.Option(None, help="Override SSH username for all hosts"),
+    username_list: Optional[Path] = typer.Option(None, help="Path to a file with candidate usernames (one per line)"),
     port: Optional[int] = typer.Option(None, help="Override SSH port for all hosts"),
     known_hosts: KnownHostsPolicy = typer.Option(
         KnownHostsPolicy.off,
@@ -80,6 +81,7 @@ def run(
     pty: bool = typer.Option(False, help="Request a PTY (xterm) for the command"),
     command_timeout: Optional[float] = typer.Option(None, help="Command timeout (seconds)"),
     retry_attempts: int = typer.Option(1, min=1, max=5, help="Connection retry attempts per host"),
+    password_list: Optional[Path] = typer.Option(None, help="Path to a file with candidate passwords (one per line)"),
     show_output: bool = typer.Option(False, help="Print full stdout per host after summary table"),
     show_stderr: bool = typer.Option(False, help="Also print stderr blocks for failed hosts"),
     save_dir: Optional[Path] = typer.Option(None, help="Directory to save per-host stdout/stderr files"),
@@ -89,7 +91,7 @@ def run(
     verbose: int = typer.Option(0, "--verbose", "-v", count=True, help="Increase verbosity (repeat for more detail)"),
     quiet: bool = typer.Option(False, help="Minimal output: only summary and exit code"),
     log_file: Optional[Path] = typer.Option(None, help="Write JSON lines log with per-host results"),
-) -> None:
+    ) -> None:
     """Run COMMAND across all hosts in the inventory.
 
     Details
@@ -122,6 +124,16 @@ def run(
     if command_file is not None:
         file_command = Path(os.path.expandvars(os.path.expanduser(str(command_file)))).read_text(encoding="utf-8")
 
+    # Read candidate username/password lists if provided
+    username_candidates: Optional[List[str]] = None
+    if username_list is not None:
+        try:
+            username_candidates = [ln.strip() for ln in Path(os.path.expandvars(os.path.expanduser(str(username_list)))).read_text(encoding="utf-8").splitlines() if ln.strip()]
+        except Exception as exc:
+            raise typer.BadParameter(f"Failed reading username list: {exc}")
+
+    # Note: password_list is used later after building per-host options
+
     options = ExecOptions(
         username=username or inv.defaults.username,
         port=port or inv.defaults.port,
@@ -133,10 +145,16 @@ def run(
         limit=limit,
         command_timeout=command_timeout,
         retry_attempts=retry_attempts,
+        username_candidates=username_candidates,
     )
 
     # Build per-host command and auth. Precedence: host.command > --command-file > CLI command
     host_specs: List[tuple[str, str, ExecOptions]] = []
+    # Preload password list once, reused across hosts
+    password_candidates: Optional[List[str]] = None
+    if 'password_list' in locals() and password_list is not None:
+        pass
+
     for h in inv.hosts:
         host_command = h.command or file_command or command
         if not host_command:
@@ -146,6 +164,16 @@ def run(
         per_host_identity = (
             Path(os.path.expandvars(os.path.expanduser(h.identity))) if h.identity else options.identity
         )
+
+        # Build per-host password candidates
+        ph_password_candidates: Optional[List[str]] = None
+        # Load password list lazily on first use
+        if password_candidates is None and password_list is not None:
+            try:
+                password_candidates = [ln.strip() for ln in Path(os.path.expandvars(os.path.expanduser(str(password_list)))).read_text(encoding="utf-8").splitlines() if ln.strip()]
+            except Exception as exc:
+                raise typer.BadParameter(f"Failed reading password list: {exc}")
+        ph_password_candidates = password_candidates
 
         per_host_options = ExecOptions(
             username=h.username or options.username,
@@ -158,6 +186,8 @@ def run(
             limit=options.limit,
             command_timeout=options.command_timeout,
             retry_attempts=options.retry_attempts,
+            username_candidates=options.username_candidates,
+            password_candidates=ph_password_candidates,
         )
         host_specs.append((h.host, host_command, per_host_options))
 
