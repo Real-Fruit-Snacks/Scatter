@@ -122,11 +122,39 @@ scatter run "uptime" --inventory inventory.yaml --username admin --password-list
 When lists are provided, the tool first attempts key-based auth per username (if a key or agent is available),
 then falls back to password attempts over the Cartesian product of usernames and passwords. Respect local laws and only use on systems you are authorized to access.
 
-4) CLI help:
+4) CLI help (excerpt):
 
-```bash
-scatter --help
-scatter run --help
+```text
+Usage: scatter run [OPTIONS] [COMMAND]
+
+Run COMMAND across all hosts in the inventory.
+
+Arguments
+  command      [COMMAND]  Shell command to run on all hosts (overridden by per-host 'command' in inventory) [default: None]
+
+Options
+  --inventory PATH                 Path to inventory YAML [default: inventory.yaml]
+  --limit INT                      Max concurrent SSH sessions [default: 50]
+  --identity PATH                  Path to private key file to use [default: None]
+  --username TEXT                  Override SSH username for all hosts [default: None]
+  --username-list PATH             Path to a file with candidate usernames (one per line) [default: None]
+  --port INT                       Override SSH port for all hosts [default: None]
+  --known-hosts [off|strict]       Host key verification policy (off disables host key checking) [default: off]
+  --connect-timeout FLOAT          SSH connect timeout (seconds) [default: 10.0]
+  --pty / --no-pty                 Request a PTY (xterm) for the command [default: no-pty]
+  --command-timeout FLOAT          Command timeout (seconds) [default: None]
+  --retry-attempts INT             Connection retry attempts per host [1..5] [default: 1]
+  --password-list PATH             Path to a file with candidate passwords (one per line) [default: None]
+  --show-output                    Print full stdout per host after summary table [default: off]
+  --show-stderr                    Also print stderr blocks for failed hosts [default: off]
+  --save-dir PATH                  Directory to save per-host stdout/stderr files [default: None]
+  --progress / --no-progress       Show progress bar and stream per-host results [default: progress]
+  --dry-run                        Preview target hosts, auth, and commands without executing
+  --command-file PATH              Read command text from a file (used if host has no 'command') [default: None]
+  -v, --verbose INTEGER            Increase verbosity (repeat for more detail) [default: 0]
+  --quiet                          Minimal output: only summary and exit code [default: off]
+  --log-file PATH                  Write JSON lines log with per-host results [default: None]
+  --help                           Show this message and exit.
 ```
 
 5) Run tests (requires pytest):
