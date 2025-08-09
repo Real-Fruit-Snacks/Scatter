@@ -29,13 +29,26 @@ jobs:
         run: |
           python -m pip wheel . -r requirements.txt -w wheelhouse
       - name: List built wheels
+        shell: bash
         run: |
           python - <<'PY'
           import os
           for f in sorted(os.listdir('wheelhouse')):
               print(f)
           PY
+      - name: Validate offline install and smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .it-venv
+          PY=.it-venv/bin/python
+          if [ "${{ runner.os }}" = "Windows" ]; then PY=.it-venv/Scripts/python.exe; fi
+          "$PY" -m pip install --no-index --find-links wheelhouse scatter
+          "$PY" -c 'import scatter; print(scatter.__version__)'
+          "$PY" -m scatter --help
+          "$PY" -m scatter run --help
       - name: Zip wheels
+        shell: bash
         run: |
           python - <<'PY'
           import os, zipfile
@@ -63,6 +76,7 @@ jobs:
         with:
           path: artifacts
       - name: Create combined zip
+        shell: bash
         run: |
           python - <<'PY'
           import os, zipfile, pathlib
