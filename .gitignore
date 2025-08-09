@@ -1,0 +1,62 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.venv
+venv/
+env/
+.python-version
+.venv.bak/
+.env/
+.env
+.env.*
+.DS_Store
+.cache/
+.idea/
+.vscode/
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+*.whl
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+/.hypothesis/
+
+# Type checking / linters
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyright/
+.pylint.d/
+dmypy.json
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS-specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Local cleanup folder
+trash/
+
+# Editor/IDE
+*.code-workspace
+.history/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json

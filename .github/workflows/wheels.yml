@@ -1,0 +1,86 @@
+name: Build offline wheels bundle
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build wheels (${{ matrix.os }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+      - name: Build wheels for project and dependencies
+        run: |
+          python -m pip wheel . -r requirements.txt -w wheelhouse
+      - name: List built wheels
+        run: |
+          python - <<'PY'
+          import os
+          for f in sorted(os.listdir('wheelhouse')):
+              print(f)
+          PY
+      - name: Zip wheels
+        run: |
+          python - <<'PY'
+          import os, zipfile
+          name = f"wheels-${{ matrix.os }}-py${{ matrix.python-version }}.zip"
+          with zipfile.ZipFile(name, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+              for fname in os.listdir('wheelhouse'):
+                  z.write(os.path.join('wheelhouse', fname), arcname=fname)
+          print('Created', name)
+          PY
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            wheelhouse/**
+            wheels-${{ matrix.os }}-py${{ matrix.python-version }}.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Create combined zip
+        run: |
+          python - <<'PY'
+          import os, zipfile, pathlib
+          out = f"scatter-wheels-${{ github.ref_name }}.zip"
+          with zipfile.ZipFile(out, 'w', compression=zipfile.ZIP_DEFLATED) as z:
+              base = pathlib.Path('artifacts')
+              for root, _, files in os.walk(base):
+                  for f in files:
+                      p = pathlib.Path(root)/f
+                      # store with just the filename to simplify --find-links usage
+                      z.write(p, arcname=p.name)
+          print('Created', out)
+          PY
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: scatter-wheels-${{ github.ref_name }}.zip
+          draft: false
+          generate_release_notes: true
+
+

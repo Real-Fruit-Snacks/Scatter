@@ -1,0 +1,52 @@
+defaults:
+  # Applied to all hosts unless overridden in a host entry
+  username: ubuntu
+  port: 22
+  connect_timeout: 10            # seconds
+  known_hosts: off               # enforced: StrictHostKeyChecking=no & no known_hosts file
+  pty: false
+
+  # Optional global auth defaults (can be overridden per host)
+  identity: ~/.ssh/id_rsa        # private key path
+  # password: env:SSH_GLOBAL_PASSWORD  # or inline (discouraged)
+
+hosts:
+  # Host with key auth override and multi-line script
+  - host: web-1.example.com
+    username: ec2-user
+    identity: ~/.ssh/web_key
+    command: |
+      set -e
+      uname -a
+      date -u
+    tags: [web, prod]
+
+  # Host with password from env and folded command
+  - host: db-1.internal
+    password: env:DB1_PASSWORD
+    command: >
+      uptime; whoami; hostname
+    tags:
+      - db
+      - staging
+
+  # Custom port, PTY enabled, inline command with quotes
+  - host: 192.0.2.55
+    port: 2222
+    pty: true
+    command: "ls -latr | grep \"log\""
+    tags: [jump]
+
+  # Example showing Windows path quoting inside command
+  - host: win-gw
+    username: administrator
+    command: >
+      echo "Using Windows-style path"; dir "C:\\Program Files"
+    tags: [windows]
+
+  # Both key and password present: key tried first, password also provided
+  - host: mixed-auth.example.com
+    identity: ~/.ssh/mixed_key
+    password: env:MIXED_PASSWORD
+    command: "echo 'trying key first, then password if needed'"
+    tags: [test]
