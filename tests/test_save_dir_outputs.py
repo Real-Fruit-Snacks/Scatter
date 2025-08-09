@@ -37,3 +37,8 @@ def test_save_dir_writes_and_sanitizes(runner: CliRunner, tmp_path: Path, monkey
     # Sanitized file names
     assert (outdir / "bad_host_name.stdout.txt").exists()
     assert (outdir / "bad_host_name.stderr.txt").exists()
+    # Summary file exists and contains header and totals
+    summary = (outdir / "summary.csv").read_text(encoding="utf-8")
+    assert "Succeeded: 1" in summary
+    assert "Failed: 0" in summary
+    assert "host,status,exit,duration_sec,first_stdout_line,error" in summary

@@ -91,21 +91,8 @@ def run(
     verbose: int = typer.Option(0, "--verbose", "-v", count=True, help="Increase verbosity (repeat for more detail)"),
     quiet: bool = typer.Option(False, help="Minimal output: only summary and exit code"),
     log_file: Optional[Path] = typer.Option(None, help="Write JSON lines log with per-host results"),
-    ) -> None:
-    """Run COMMAND across all hosts in the inventory.
-
-    Details
-    - Command selection precedence: per-host ``command`` in the inventory takes precedence,
-      then ``--command-file`` (first line shown in previews), then the positional CLI ``command``.
-    - Authentication precedence: values defined on a host override CLI/global defaults. Paths
-      provided via CLI or inventory support ``~`` and environment variable expansion.
-    - Progress and verbosity: progress is enabled by default; ``--no-progress`` disables it.
-      ``-vv`` implies ``--show-output`` and ``--show-stderr``. ``--quiet`` reduces output to a
-      single summary line.
-    - Outputs: when ``--save-dir`` is provided, per-host ``.stdout.txt`` and ``.stderr.txt`` files
-      are written (with sanitized hostnames). When ``--log-file`` is provided, a JSON Lines file is
-      written with one record per host including result metadata and the effective command.
-    """
+) -> None:
+    """Run COMMAND across all hosts in the inventory."""
 
     inv: Inventory = load_inventory(inventory)
 
@@ -331,6 +318,23 @@ def run(
             base = _sanitize(r.host)
             (save_dir / f"{base}.stdout.txt").write_text(r.stdout or "", encoding="utf-8")
             (save_dir / f"{base}.stderr.txt").write_text(r.stderr or "", encoding="utf-8")
+
+        # Write a summary log for the whole run
+        summary_lines = [
+            f"Succeeded: {ok_count}",
+            f"Failed: {failed_count}",
+            "",
+            "host,status,exit,duration_sec,first_stdout_line,error",
+        ]
+        for r in results:
+            status = "OK" if r.ok else "FAIL"
+            exit_text = "" if r.exit_status is None else str(r.exit_status)
+            first_line = (r.stdout.strip().splitlines() or [""])[0].replace("\n", " ").replace(",", " ")[:200]
+            error_text = (r.error or (r.stderr.strip().splitlines() or [""])[0]).replace("\n", " ").replace(",", " ")[:200] if not r.ok else ""
+            summary_lines.append(
+                f"{r.host},{status},{exit_text},{r.duration:.2f},{first_line},{error_text}"
+            )
+        (save_dir / "summary.csv").write_text("\n".join(summary_lines) + "\n", encoding="utf-8")
 
     # Optional JSONL log file
     if log_file is not None:
