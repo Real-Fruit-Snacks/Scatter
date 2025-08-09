@@ -31,14 +31,17 @@ Once installed, a top-level console command `scatter` is available.
 
 ### Offline/air-gapped installation
 
-We publish prebuilt wheels bundles per OS and Python version in GitHub Releases.
+We publish prebuilt wheel bundles per OS and Python version in GitHub Releases.
 
-1) Download the wheels zip matching your platform and Python (e.g., `scatter-wheels-vX.Y.Z.zip`).
-2) Extract to a folder, e.g., `./wheels`.
+- Asset naming: `wheels-<OS>-py<MAJOR.MINOR>.zip`
+  - Examples: `wheels-Linux-py3.10.zip`, `wheels-macOS-py3.12.zip`, `wheels-Windows-py3.11.zip`
+
+1) Download the zip matching your platform and Python (e.g., `wheels-Linux-py3.11.zip`).
+2) Extract to a folder, e.g., `./wheelhouse`.
 3) Install offline:
 
 ```bash
-pip install --no-index --find-links ./wheels scatter
+pip install --no-index --find-links ./wheelhouse scatter
 ```
 
 This installs `scatter` and all required dependencies without network access.
