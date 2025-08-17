@@ -12,6 +12,31 @@ Concurrent SSH executor for 100+ hosts with asyncio + AsyncSSH, Typer CLI, YAML 
 
 ## Installation
 
+### Option 1: Standalone Executable (Recommended)
+
+**No Python installation required!** Download a pre-built standalone executable from the [GitHub Releases](https://github.com/Real-Fruit-Snacks/Scatter/releases) page.
+
+1. Download the Linux executable:
+   - `scatter-X.X.X-linux-x86_64` for Ubuntu/Linux x86_64
+
+2. Make it executable:
+   ```bash
+   chmod +x scatter-*-linux-x86_64
+   ```
+
+3. Run directly:
+   ```bash
+   ./scatter-*-linux-x86_64 --help
+   ```
+
+4. Optionally, install system-wide:
+   ```bash
+   sudo mv scatter-*-linux-x86_64 /usr/local/bin/scatter
+   scatter --help
+   ```
+
+### Option 2: Install with pip (for Python developers)
+
 Install with pip (local project):
 
 ```bash
@@ -29,14 +54,14 @@ pip install -e .
 
 Once installed, a top-level console command `scatter` is available.
 
-### Offline/air-gapped installation
+### Option 3: Offline/air-gapped installation
 
-We publish prebuilt wheel bundles per OS runner and Python version in GitHub Releases.
+We publish prebuilt wheel bundles for Linux systems with different Python versions in GitHub Releases.
 
-- Asset naming: `wheels-<os>-latest-py<MAJOR.MINOR>.zip`
-  - Examples: `wheels-ubuntu-latest-py3.10.zip`, `wheels-macos-latest-py3.12.zip`, `wheels-windows-latest-py3.11.zip`
+- Asset naming: `wheels-Linux-py<MAJOR.MINOR>.zip`
+  - Examples: `wheels-Linux-py3.10.zip`, `wheels-Linux-py3.11.zip`, `wheels-Linux-py3.12.zip`
 
-1) Download the zip matching your platform and Python (e.g., `wheels-Linux-py3.11.zip`).
+1) Download the zip matching your Python version (e.g., `wheels-Linux-py3.11.zip`).
 2) Extract to a folder, e.g., `./wheelhouse`.
 3) Install offline:
 
@@ -235,8 +260,7 @@ Tips:
 ## Notes
 - Supports per-host or global `identity` (private key path) and/or `password`. If both are provided, key auth is tried with password as fallback if the server allows it.
 - Host key verification is disabled for speed/scale: equivalent to `-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null`.
-- On Windows, run inside a terminal which has access to your SSH keys (e.g., Git Bash, PowerShell with OpenSSH agent).
- - CLI paths for `--identity`, `--command-file`, `--save-dir`, and `--log-file` support `~` and environment variable expansion.
+- CLI paths for `--identity`, `--command-file`, `--save-dir`, and `--log-file` support `~` and environment variable expansion.
 
 ## Behavior and exit codes
 - Succeeds (exit 0) only if all hosts report OK; otherwise exits 1.
@@ -247,6 +271,6 @@ Tips:
 - If your proxy is IPv4-only, ensure DNS is handled by proxychains (proxy_dns) and targets resolve to IPv4.
 
 ## Compatibility
-- Supported Python: 3.10+
-- Platforms: Linux, macOS, Windows
-- On non-Windows platforms, `uvloop` is used automatically if available.
+- **Target Platform**: Linux Ubuntu (x86_64)
+- **Supported Python**: 3.10+ (when using wheel installation)
+- **Optimizations**: Uses `uvloop` for improved asyncio performance on Linux

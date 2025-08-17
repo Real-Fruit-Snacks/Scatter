@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""
+PyInstaller spec file for building Scatter standalone executable.
+This provides more control over the build process than command-line options.
+"""
+
+import platform
+import sys
+from pathlib import Path
+
+# Get version and platform info
+try:
+    import tomli
+    with open("pyproject.toml", "rb") as f:
+        pyproject = tomli.load(f)
+    version = pyproject["project"]["version"]
+except ImportError:
+    # Fallback if tomli not available
+    version = "dev"
+
+def get_platform_suffix():
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    
+    if system == "windows":
+        return f"windows-{machine}.exe"
+    elif system == "darwin":
+        return f"macos-{machine}"
+    elif system == "linux":
+        return f"linux-{machine}"
+    else:
+        return f"{system}-{machine}"
+
+# Platform-specific executable name
+exe_name = f"scatter-{version}-{get_platform_suffix()}"
+
+block_cipher = None
+
+a = Analysis(
+    ['scatter/__main__.py'],
+    pathex=[],
+    binaries=[],
+    datas=[
+        ('README.md', '.'),
+        ('inventory.example.yaml', '.'),
+    ],
+    hiddenimports=[
+        'scatter',
+        'scatter.cli',
+        'scatter.config', 
+        'scatter.ssh',
+        # Ensure asyncio and platform-specific modules are included
+        'asyncio',
+        'asyncssh',
+        'yaml',
+        'rich',
+        'typer',
+        'tenacity',
+    ],
+    hookspath=[],
+    hooksconfig={},
+    runtime_hooks=[],
+    excludes=[
+        # Exclude unused packages to reduce size
+        'tkinter',
+        'matplotlib',
+        'numpy',
+        'pandas',
+        'jupyter',
+        'IPython',
+    ],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+
+# Add uvloop for Linux
+if platform.system() == "Linux":
+    a.hiddenimports.append('uvloop')
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name=exe_name,
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=platform.system() != "Windows",  # Strip debug symbols on Unix
+    upx=True,  # Use UPX compression if available
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=True,  # Console application
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    # Windows-specific options
+    icon=None,  # Could add an icon file here
+    version='version_info.txt' if platform.system() == "Windows" else None,
+)

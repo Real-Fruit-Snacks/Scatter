@@ -24,6 +24,11 @@ dist/
 pip-wheel-metadata/
 *.whl
 
+# PyInstaller artifacts
+*.spec
+version_info.txt
+wheelhouse/
+
 # Testing and coverage
 .pytest_cache/
 .coverage
@@ -53,6 +58,12 @@ Desktop.ini
 
 # Local cleanup folder
 trash/
+
+# Temporary build files
+*.tar.gz
+*.tgz
+scatter-offline-*
+scatter-wheels-*
 
 # Editor/IDE
 *.code-workspace

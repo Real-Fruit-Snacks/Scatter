@@ -1,9 +1,11 @@
-name: Release
+name: Legacy Wheel Releases (Deprecated)
 
+# This workflow is deprecated in favor of standalone-release.yml
+# which builds both standalone executables AND wheel bundles
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'legacy-v*.*.*'  # Only trigger on legacy tags
 
 jobs:
   build_bundles:

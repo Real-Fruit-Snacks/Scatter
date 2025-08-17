@@ -1,0 +1,177 @@
+name: Build Linux Standalone Releases
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build_standalone:
+    name: Build standalone executable (Linux Ubuntu)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -e .
+
+      - name: Build standalone executable
+        run: python build_standalone.py
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scatter-standalone-linux
+          path: dist/scatter-*
+
+  build_wheels:
+    name: Build wheel bundles (Linux Ubuntu)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Build wheelhouse for Linux/Python
+        run: |
+          python -m pip download --dest wheelhouse .
+
+      - name: Upload wheelhouse artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-Linux-py${{ matrix.python-version }}
+          path: wheelhouse/**
+
+  release:
+    name: Create GitHub Release
+    needs: [build_standalone, build_wheels]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          mkdir -p release_assets
+          
+          # Package wheel bundles
+          cd artifacts
+          for d in wheels-*/; do
+            if [ -d "$d" ]; then
+              base="${d%/}"
+              zip -r "../release_assets/${base}.zip" "$d"/*
+            fi
+          done
+          
+          # Copy standalone executables
+          for d in scatter-standalone-*/; do
+            if [ -d "$d" ]; then
+              cp "$d"/* ../release_assets/ || echo "No files in $d"
+            fi
+          done
+          
+          cd ..
+          ls -la release_assets/
+          
+          # Create installation instructions for Linux
+          cat > release_assets/INSTALL.md << 'EOF'
+          # Scatter Installation for Linux Ubuntu
+          
+          ## Option 1: Standalone Executable (Recommended)
+          
+          **No Python installation required!**
+          
+          1. Download the executable:
+             - `scatter-X.X.X-linux-x86_64` for Ubuntu/Linux x86_64
+          
+          2. Make it executable:
+             ```bash
+             chmod +x scatter-*-linux-x86_64
+             ```
+          
+          3. Run directly:
+             ```bash
+             ./scatter-*-linux-x86_64 --help
+             ```
+          
+          4. Optionally, install system-wide:
+             ```bash
+             sudo mv scatter-*-linux-x86_64 /usr/local/bin/scatter
+             scatter --help
+             ```
+          
+          ## Option 2: Python Wheel Installation
+          
+          **Requires Python 3.10+ to be installed**
+          
+          1. Download the wheel bundle for your Python version:
+             - `wheels-Linux-py3.10.zip`
+             - `wheels-Linux-py3.11.zip` 
+             - `wheels-Linux-py3.12.zip`
+          
+          2. Extract and install:
+             ```bash
+             unzip wheels-Linux-py*.zip
+             pip install --no-index --find-links wheelhouse scatter
+             ```
+          
+          3. Use the `scatter` command:
+             ```bash
+             scatter --help
+             ```
+          
+          ## Getting Started
+          
+          See the [README](https://github.com/Real-Fruit-Snacks/Scatter/blob/main/README.md) for usage examples and documentation.
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            release_assets/*
+          body: |
+            ## 🚀 New in this release
+            
+            ### Standalone Linux Executable
+            This release includes a **standalone executable** optimized for **Linux Ubuntu systems** that doesn't require Python to be installed! Just download and run.
+            
+            - **Linux Ubuntu**: `scatter-*-linux-x86_64`
+            
+            ### Linux Wheel Bundles  
+            For developers who prefer Python package installation, wheel bundles are available for offline/air-gapped Linux environments.
+            
+            See `INSTALL.md` in the assets for detailed installation instructions.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
