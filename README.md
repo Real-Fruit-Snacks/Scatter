@@ -2,6 +2,8 @@
 
 Concurrent SSH executor for 100+ hosts with asyncio + AsyncSSH, Typer CLI, YAML inventory, retries, and rich output.
 
+**Available as standalone binary (no Python required) or portable tarball for Linux Ubuntu systems.**
+
 ## Features
 - Concurrent SSH to 100+ hosts (`--limit` controls max parallelism)
 - Per-host auth (key/password) and per-host commands
@@ -9,8 +11,17 @@ Concurrent SSH executor for 100+ hosts with asyncio + AsyncSSH, Typer CLI, YAML 
 - Retries with backoff, timeouts, and optional PTY
 - Rich table, progress bar, summaries, and JSONL logging
 - Works transparently with proxychains
+- Multiple distribution options: binary, tarball, or Python package
 
 ## Installation
+
+Choose the installation method that best fits your needs:
+
+| Method | Python Required | Size | Best For |
+|--------|----------------|------|----------|
+| **Standalone Binary** | ❌ No | ~20MB | End users, production systems |
+| **Portable Tarball** | ✅ 3.10+ | ~6MB | Developers, source code access |
+| **Python Package** | ✅ 3.10+ | varies | Python developers, existing environments |
 
 ### Option 1: Standalone Binary (Recommended)
 
@@ -62,7 +73,7 @@ Or for development (editable):
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # on Windows: .venv\\Scripts\\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -270,7 +281,7 @@ hosts:
 Tips:
 - Prefer `|` for multi-step scripts; add `set -e` to stop on the first failing command.
 - Use spaces for indentation (no tabs).
-- For Windows-style paths in commands, use quotes or escape backslashes.
+- Quote paths with spaces or special characters as needed.
 
 ## Notes
 - Supports per-host or global `identity` (private key path) and/or `password`. If both are provided, key auth is tried with password as fallback if the server allows it.
