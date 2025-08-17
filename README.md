@@ -12,30 +12,45 @@ Concurrent SSH executor for 100+ hosts with asyncio + AsyncSSH, Typer CLI, YAML 
 
 ## Installation
 
-### Option 1: Standalone Executable (Recommended)
+### Option 1: Standalone Binary (Recommended)
 
 **No Python installation required!** Download a pre-built standalone executable from the [GitHub Releases](https://github.com/Real-Fruit-Snacks/Scatter/releases) page.
 
 1. Download the Linux executable:
    - `scatter-X.X.X-linux-x86_64` for Ubuntu/Linux x86_64
 
-2. Make it executable:
+2. Make it executable and run:
    ```bash
    chmod +x scatter-*-linux-x86_64
-   ```
-
-3. Run directly:
-   ```bash
    ./scatter-*-linux-x86_64 --help
    ```
 
-4. Optionally, install system-wide:
+3. Optionally, install system-wide:
    ```bash
    sudo mv scatter-*-linux-x86_64 /usr/local/bin/scatter
    scatter --help
    ```
 
-### Option 2: Install with pip (for Python developers)
+### Option 2: Portable Tarball
+
+**Python 3.10+ required.** For users who want all the source files and dependencies in a single package.
+
+1. Download the portable tarball:
+   - `scatter-X.X.X-linux-x86_64-portable.tar.gz`
+
+2. Extract and run:
+   ```bash
+   tar -xzf scatter-*-portable.tar.gz
+   cd scatter-*-portable/
+   ./scatter.sh --help
+   ```
+
+3. Or use Python directly:
+   ```bash
+   python3 run_scatter.py --help
+   ```
+
+### Option 3: Install with pip (for Python developers)
 
 Install with pip (local project):
 
@@ -54,7 +69,7 @@ pip install -e .
 
 Once installed, a top-level console command `scatter` is available.
 
-### Option 3: Offline/air-gapped installation
+### Option 4: Offline/air-gapped installation
 
 We publish prebuilt wheel bundles for Linux systems with different Python versions in GitHub Releases.
 

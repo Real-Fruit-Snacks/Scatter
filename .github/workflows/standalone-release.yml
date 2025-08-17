@@ -25,13 +25,13 @@ jobs:
           pip install pyinstaller
           pip install -e .
 
-      - name: Build standalone executable
-        run: python build_standalone.py
+      - name: Build standalone distributions
+        run: python build_standalone.py --type=both
 
-      - name: Upload executable artifact
+      - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: scatter-standalone-linux
+          name: scatter-distributions-linux
           path: dist/scatter-*
 
   build_wheels:
@@ -93,8 +93,8 @@ jobs:
             fi
           done
           
-          # Copy standalone executables
-          for d in scatter-standalone-*/; do
+          # Copy standalone distributions  
+          for d in scatter-distributions-*/; do
             if [ -d "$d" ]; then
               cp "$d"/* ../release_assets/ || echo "No files in $d"
             fi
@@ -107,46 +107,49 @@ jobs:
           cat > release_assets/INSTALL.md << 'EOF'
           # Scatter Installation for Linux Ubuntu
           
-          ## Option 1: Standalone Executable (Recommended)
+          ## Option 1: Standalone Binary (No Python Required)
           
-          **No Python installation required!**
+          1. Download the binary executable:
+             - `scatter-X.X.X-linux-x86_64`
           
-          1. Download the executable:
-             - `scatter-X.X.X-linux-x86_64` for Ubuntu/Linux x86_64
-          
-          2. Make it executable:
+          2. Make it executable and run:
              ```bash
              chmod +x scatter-*-linux-x86_64
-             ```
-          
-          3. Run directly:
-             ```bash
              ./scatter-*-linux-x86_64 --help
              ```
           
-          4. Optionally, install system-wide:
+          3. Optionally, install system-wide:
              ```bash
              sudo mv scatter-*-linux-x86_64 /usr/local/bin/scatter
              scatter --help
              ```
           
-          ## Option 2: Python Wheel Installation
+          ## Option 2: Portable Tarball (Python 3.10+ Required)
           
-          **Requires Python 3.10+ to be installed**
+          1. Download the portable tarball:
+             - `scatter-X.X.X-linux-x86_64-portable.tar.gz`
+          
+          2. Extract and run:
+             ```bash
+             tar -xzf scatter-*-portable.tar.gz
+             cd scatter-*-portable/
+             ./scatter.sh --help
+             ```
+          
+          3. Or use Python directly:
+             ```bash
+             python3 run_scatter.py --help
+             ```
+          
+          ## Option 3: Python Wheel Installation
           
           1. Download the wheel bundle for your Python version:
-             - `wheels-Linux-py3.10.zip`
-             - `wheels-Linux-py3.11.zip` 
-             - `wheels-Linux-py3.12.zip`
+             - `wheels-Linux-py3.10.zip`, `wheels-Linux-py3.11.zip`, `wheels-Linux-py3.12.zip`
           
           2. Extract and install:
              ```bash
              unzip wheels-Linux-py*.zip
              pip install --no-index --find-links wheelhouse scatter
-             ```
-          
-          3. Use the `scatter` command:
-             ```bash
              scatter --help
              ```
           
@@ -164,14 +167,19 @@ jobs:
           body: |
             ## 🚀 New in this release
             
-            ### Standalone Linux Executable
-            This release includes a **standalone executable** optimized for **Linux Ubuntu systems** that doesn't require Python to be installed! Just download and run.
+            ### Multiple Distribution Options for Linux Ubuntu
             
-            - **Linux Ubuntu**: `scatter-*-linux-x86_64`
+            **🔥 Standalone Binary** (No Python required)
+            - `scatter-*-linux-x86_64` - Single executable file, just download and run!
             
-            ### Linux Wheel Bundles  
-            For developers who prefer Python package installation, wheel bundles are available for offline/air-gapped Linux environments.
+            **📦 Portable Tarball** (Python 3.10+ required)  
+            - `scatter-*-linux-x86_64-portable.tar.gz` - Extract and run with included dependencies
+            - Includes source code, launcher scripts, and all dependencies
+            - Great for environments where you want to see the source or have Python installed
             
-            See `INSTALL.md` in the assets for detailed installation instructions.
+            **🐍 Python Wheel Bundles** (For developers)
+            - For offline/air-gapped Linux environments with Python
+            
+            See `INSTALL.md` for detailed installation instructions for each option.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
